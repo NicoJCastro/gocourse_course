@@ -47,13 +47,6 @@ type (
 		EndDate   *string `json:"end_date"`
 	}
 
-	Response struct {
-		Status int         `json:"status"`
-		Data   interface{} `json:"data,omitempty"`
-		Error  string      `json:"error,omitempty"`
-		Meta   *meta.Meta  `json:"meta,omitempty"`
-	}
-
 	Config struct {
 		LimPageDef string
 	}
@@ -85,7 +78,7 @@ func makeCreateEndpoint(s Service) Controller {
 		if req.StartDate == "" || req.EndDate == "" {
 			return nil, response.BadRequest(ErrStartDateAndEndDateRequired.Error())
 		}
-		course, err := s.Create(req.Name, req.StartDate, req.EndDate)
+		course, err := s.Create(ctx, req.Name, req.StartDate, req.EndDate)
 		if err != nil {
 			return nil, response.InternalServerError(err.Error())
 		}
@@ -102,7 +95,7 @@ func makeGetEndpoint(s Service) Controller {
 		if req.ID == "" {
 			return nil, response.BadRequest(ErrIDRequired.Error())
 		}
-		course, err := s.Get(req.ID)
+		course, err := s.Get(ctx, req.ID)
 		if err != nil {
 			var notFoundErr *ErrNotFound
 			if errors.As(err, &notFoundErr) || errors.Is(err, ErrNotFoundBase) {
@@ -144,7 +137,7 @@ func makeGetAllEndpoint(s Service, config Config) Controller {
 			page = 1
 		}
 
-		count, err := s.Count(filters)
+		count, err := s.Count(ctx, filters)
 		if err != nil {
 			return nil, response.InternalServerError("error counting courses: " + err.Error())
 		}
@@ -154,7 +147,7 @@ func makeGetAllEndpoint(s Service, config Config) Controller {
 			return nil, response.InternalServerError("error generating metadata: " + err.Error())
 		}
 
-		courses, err := s.GetAll(filters, metaData.Offset(), metaData.Limit())
+		courses, err := s.GetAll(ctx, filters, metaData.Offset(), metaData.Limit())
 		if err != nil {
 			return nil, response.InternalServerError("error retrieving courses: " + err.Error())
 		}
@@ -191,7 +184,7 @@ func makeUpdateEndpoint(s Service) Controller {
 			return nil, response.BadRequest(ErrStartDateAndEndDateRequired.Error())
 		}
 
-		err := s.Update(reqUpdate.ID, reqUpdate.Name, reqUpdate.StartDate, reqUpdate.EndDate)
+		err := s.Update(ctx, reqUpdate.ID, reqUpdate.Name, reqUpdate.StartDate, reqUpdate.EndDate)
 		if err != nil {
 			var notFoundErr *ErrNotFound
 			if errors.As(err, &notFoundErr) || errors.Is(err, ErrNotFoundBase) {
@@ -212,7 +205,7 @@ func makeDeleteEndpoint(s Service) Controller {
 		if req.ID == "" {
 			return nil, response.BadRequest(ErrIDRequired.Error())
 		}
-		err := s.Delete(req.ID)
+		err := s.Delete(ctx, req.ID)
 		if err != nil {
 			var notFoundErr *ErrNotFound
 			if errors.As(err, &notFoundErr) || errors.Is(err, ErrNotFoundBase) {

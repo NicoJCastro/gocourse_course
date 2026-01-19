@@ -1,6 +1,7 @@
 package course
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log"
@@ -14,12 +15,12 @@ import (
 
 type (
 	Repository interface {
-		Create(course *domain.Course) error
-		GetAll(filter Filters, offset, limit int) ([]domain.Course, error)
-		Get(id string) (*domain.Course, error)
-		Delete(id string) error
-		Update(id string, name *string, startDate *time.Time, endDate *time.Time) error
-		Count(filters Filters) (int64, error)
+		Create(ctx context.Context, course *domain.Course) error
+		GetAll(ctx context.Context, filter Filters, offset, limit int) ([]domain.Course, error)
+		Get(ctx context.Context, id string) (*domain.Course, error)
+		Delete(ctx context.Context, id string) error
+		Update(ctx context.Context, id string, name *string, startDate *time.Time, endDate *time.Time) error
+		Count(ctx context.Context, filters Filters) (int64, error)
 	}
 
 	repo struct {
@@ -35,8 +36,8 @@ func NewRepo(db *gorm.DB, logger *log.Logger) Repository {
 	}
 }
 
-func (r *repo) Create(course *domain.Course) error {
-	if err := r.db.Create(course).Error; err != nil {
+func (r *repo) Create(ctx context.Context, course *domain.Course) error {
+	if err := r.db.WithContext(ctx).Create(course).Error; err != nil {
 		r.log.Printf("error: %v", err)
 		return err
 	}
@@ -45,9 +46,9 @@ func (r *repo) Create(course *domain.Course) error {
 	return nil
 }
 
-func (r *repo) GetAll(filters Filters, offset, limit int) ([]domain.Course, error) {
+func (r *repo) GetAll(ctx context.Context, filters Filters, offset, limit int) ([]domain.Course, error) {
 	var courses []domain.Course
-	tx := r.db.Model(&courses)
+	tx := r.db.WithContext(ctx).Model(&courses)
 	tx = applyFilters(tx, filters)
 	tx = tx.Limit(limit).Offset(offset)
 	result := tx.Order("created_at desc").Find(&courses)
@@ -59,9 +60,9 @@ func (r *repo) GetAll(filters Filters, offset, limit int) ([]domain.Course, erro
 	return courses, nil
 }
 
-func (r *repo) Get(id string) (*domain.Course, error) {
+func (r *repo) Get(ctx context.Context, id string) (*domain.Course, error) {
 	course := domain.Course{ID: id}
-	result := r.db.First(&course)
+	result := r.db.WithContext(ctx).First(&course)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, NewErrNotFound(id)
@@ -72,9 +73,9 @@ func (r *repo) Get(id string) (*domain.Course, error) {
 	return &course, nil
 }
 
-func (r *repo) Delete(id string) error {
+func (r *repo) Delete(ctx context.Context, id string) error {
 	course := domain.Course{ID: id}
-	result := r.db.Delete(&course)
+	result := r.db.WithContext(ctx).Delete(&course)
 	if result.Error != nil {
 		r.log.Println("Error deleting course: ", result.Error)
 		return result.Error
@@ -85,7 +86,7 @@ func (r *repo) Delete(id string) error {
 	return nil
 }
 
-func (r *repo) Update(id string, name *string, startDate *time.Time, endDate *time.Time) error {
+func (r *repo) Update(ctx context.Context, id string, name *string, startDate *time.Time, endDate *time.Time) error {
 
 	updates := make(map[string]interface{})
 	if name != nil && *name != "" {
@@ -97,7 +98,7 @@ func (r *repo) Update(id string, name *string, startDate *time.Time, endDate *ti
 	if endDate != nil {
 		updates["end_date"] = *endDate
 	}
-	result := r.db.Model(&domain.Course{}).Where("id = ?", id).Updates(updates)
+	result := r.db.WithContext(ctx).Model(&domain.Course{}).Where("id = ?", id).Updates(updates)
 	if result.Error != nil {
 		r.log.Println("Error updating course: ", result.Error)
 		return result.Error
@@ -117,9 +118,9 @@ func applyFilters(tx *gorm.DB, filters Filters) *gorm.DB {
 	return tx
 }
 
-func (r *repo) Count(filters Filters) (int64, error) {
+func (r *repo) Count(ctx context.Context, filters Filters) (int64, error) {
 	var count int64
-	tx := r.db.Model(&domain.Course{})
+	tx := r.db.WithContext(ctx).Model(&domain.Course{})
 	tx = applyFilters(tx, filters)
 	result := tx.Count(&count)
 	if result.Error != nil {

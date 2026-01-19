@@ -1,0 +1,53 @@
+# Archivos de configuración local
+.env
+.env.local
+.env.*
+
+# Archivos y carpetas de Docker
+.docker/
+docker-compose.yml
+docker-compose.*.yml
+
+# Archivos binarios y ejecutables
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+bin/
+
+# Archivos temporales
+tmp/
+temp/
+
+# Archivos de testing
+*.test
+*.out
+
+# Dependencias
+vendor/
+
+# IDE - VSCode
+.vscode/
+*.code-workspace
+.history/
+
+# IDE - GoLand
+.idea/
+*.iml
+*.iws
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Archivos de compilación
+*.o
+*.a
+
+# Directorios de caché de Go
+go.work

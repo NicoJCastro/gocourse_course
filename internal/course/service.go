@@ -52,6 +52,12 @@ func (s *service) Create(ctx context.Context, name, startDate, endDate string) (
 		return nil, fmt.Errorf("%w: %v", ErrInvalidEndDate, err)
 	}
 
+	// 🔧 Validar que la fecha de inicio no sea después de la fecha de fin
+	if startDateParsed.After(endDateParsed) {
+		s.log.Println("Start date is after end date")
+		return nil, ErrStartDateAfterEndDate
+	}
+
 	course := &domain.Course{
 		Name:      name,
 		StartDate: startDateParsed,
@@ -114,6 +120,15 @@ func (s service) Update(ctx context.Context, id string, name *string, startDate 
 
 	var startDateParsed, endDateParsed *time.Time
 
+	course, err := s.Get(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	// Usar las fechas existentes como valores por defecto si no se proporcionan nuevas
+	currentStartDate := course.StartDate
+	currentEndDate := course.EndDate
+
 	if startDate != nil {
 		parsedDate, err := time.Parse("2006-01-02", *startDate)
 		if err != nil {
@@ -121,6 +136,7 @@ func (s service) Update(ctx context.Context, id string, name *string, startDate 
 			return fmt.Errorf("%w: %v", ErrInvalidStartDate, err)
 		}
 		startDateParsed = &parsedDate
+		currentStartDate = parsedDate
 	}
 
 	if endDate != nil {
@@ -130,9 +146,23 @@ func (s service) Update(ctx context.Context, id string, name *string, startDate 
 			return fmt.Errorf("%w: %v", ErrInvalidEndDate, err)
 		}
 		endDateParsed = &parsedDate
+		currentEndDate = parsedDate
+
+		// 🔧 Si se está actualizando endDate, validar que no sea antes del startDate
+		if currentEndDate.Before(currentStartDate) {
+			s.log.Println("End date is before start date")
+			return ErrEndDateBeforeStartDate
+		}
 	}
 
-	err := s.repo.Update(ctx, id, name, startDateParsed, endDateParsed)
+	// 🔧 Validar que la fecha de inicio no sea después de la fecha de fin (usando valores actuales)
+	// Esta validación se ejecuta si se actualiza startDate o si ambas fechas están presentes
+	if currentStartDate.After(currentEndDate) {
+		s.log.Println("Start date is after end date")
+		return ErrStartDateAfterEndDate
+	}
+
+	err = s.repo.Update(ctx, id, name, startDateParsed, endDateParsed)
 	if err != nil {
 		// No envolvemos ErrNotFound, lo propagamos directamente
 		var notFoundErr *ErrNotFound

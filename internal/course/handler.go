@@ -80,6 +80,11 @@ func makeCreateEndpoint(s Service) Controller {
 		}
 		course, err := s.Create(ctx, req.Name, req.StartDate, req.EndDate)
 		if err != nil {
+			// 🔧 Errores de validación deben ser BadRequest (400)
+			if errors.Is(err, ErrInvalidStartDate) || errors.Is(err, ErrInvalidEndDate) ||
+				errors.Is(err, ErrStartDateAfterEndDate) || errors.Is(err, ErrEndDateBeforeStartDate) {
+				return nil, response.BadRequest(err.Error())
+			}
 			return nil, response.InternalServerError(err.Error())
 		}
 		return response.Created("Course created successfully", course, nil), nil
@@ -187,6 +192,12 @@ func makeUpdateEndpoint(s Service) Controller {
 		err := s.Update(ctx, reqUpdate.ID, reqUpdate.Name, reqUpdate.StartDate, reqUpdate.EndDate)
 		if err != nil {
 			var notFoundErr *ErrNotFound
+			// 🔧 Errores de validación deben ser BadRequest (400)
+			if errors.Is(err, ErrInvalidStartDate) || errors.Is(err, ErrInvalidEndDate) ||
+				errors.Is(err, ErrStartDateAfterEndDate) || errors.Is(err, ErrEndDateBeforeStartDate) {
+				return nil, response.BadRequest(err.Error())
+			}
+			// 🔧 Errores de recurso no encontrado deben ser NotFound (404)
 			if errors.As(err, &notFoundErr) || errors.Is(err, ErrNotFoundBase) {
 				return nil, response.NotFound(err.Error())
 			}

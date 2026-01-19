@@ -19,6 +19,8 @@ var ErrFailedToDeleteCourse = errors.New("failed to delete course")
 var ErrFailedToCountCourses = errors.New("failed to count courses")
 var ErrInvalidStartDate = errors.New("invalid start date format")
 var ErrInvalidEndDate = errors.New("invalid end date format")
+var ErrStartDateAfterEndDate = errors.New("start date is after end date")
+var ErrEndDateBeforeStartDate = errors.New("end date is before start date")
 
 // ErrNotFound es un error personalizado que incluye el ID del curso no encontrado
 type ErrNotFound struct {
